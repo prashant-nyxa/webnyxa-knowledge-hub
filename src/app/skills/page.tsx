@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addSkill } from './actions'
 import { SkillsTable } from '@/components/SkillsTable'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 
 export default async function SkillsPage() {
   const skills = await prisma.skill.findMany({
@@ -37,7 +38,7 @@ export default async function SkillsPage() {
                   <option value="Other">Other</option>
                 </select>
               </div>
-              <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Add Skill</button>
+              <PendingSubmitButton label="Add Skill" pendingLabel="Adding..." className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70" />
             </form>
           </div>
         </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Edit3, Save, Trash2, X } from 'lucide-react'
 import { deleteProject, updateProject } from '@/app/projects/actions'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 import {
   createInitialFilters,
   exportCsv,
@@ -175,10 +176,7 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
                       <textarea name="notes" defaultValue={project.notes ?? ''} rows={2} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
                     </label>
                     <div className="flex gap-2 lg:col-span-2">
-                      <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-md bg-gray-900 px-3 text-sm font-medium text-white">
-                        <Save className="h-4 w-4" />
-                        Update
-                      </button>
+                      <PendingSubmitButton label="Update" pendingLabel="Updating..." icon={Save} className="inline-flex h-10 items-center gap-2 rounded-md bg-gray-900 px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70" />
                       <button type="button" onClick={() => setEditingId(null)} className="inline-flex h-10 items-center rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700">
                         <X className="h-4 w-4" />
                       </button>
@@ -214,10 +212,7 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
                     </button>
                     <form action={deleteProject} onSubmit={(event) => !confirm('Delete this project?') && event.preventDefault()}>
                       <input type="hidden" name="id" value={project.id} />
-                      <button type="submit" className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-700 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
+                      <PendingSubmitButton label="Delete" pendingLabel="Deleting..." icon={Trash2} className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70" />
                     </form>
                   </div>
                 </td>

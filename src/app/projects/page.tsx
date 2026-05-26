@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addProject } from './actions'
 import { ProjectsTable } from '@/components/ProjectsTable'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
@@ -93,7 +94,7 @@ export default async function ProjectsPage() {
                 <label className="block text-sm font-medium text-gray-700">Notes</label>
                 <textarea name="notes" rows={3} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
-              <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Add Project</button>
+              <PendingSubmitButton label="Add Project" pendingLabel="Adding..." className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70" />
             </form>
           </div>
         </div>

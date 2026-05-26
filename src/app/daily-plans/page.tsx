@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addDailyPlan } from './actions'
 import { DailyPlansTable } from '@/components/DailyPlansTable'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 
 export default async function DailyPlansPage() {
   const plans = await prisma.dailyPlan.findMany({
@@ -98,7 +99,7 @@ export default async function DailyPlansPage() {
                 <label className="block text-sm font-medium text-gray-700">Short Note</label>
                 <textarea name="notes" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
-              <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Submit Plan</button>
+              <PendingSubmitButton label="Submit Plan" pendingLabel="Submitting..." className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70" />
             </form>
           </div>
         </div>
