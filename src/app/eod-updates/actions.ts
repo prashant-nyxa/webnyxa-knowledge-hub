@@ -3,7 +3,13 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
+function parseUpdateDate(value: FormDataEntryValue | null) {
+  if (!value || typeof value !== 'string') return new Date()
+  return value ? new Date(value) : new Date()
+}
+
 export async function addEodUpdate(formData: FormData) {
+  const date = parseUpdateDate(formData.get('date'))
   const dailyPlanId = formData.get('dailyPlanId') as string
   const developerId = formData.get('developerId') as string
   const projectId = formData.get('projectId') as string
@@ -22,6 +28,7 @@ export async function addEodUpdate(formData: FormData) {
   await prisma.dailyUpdate.create({
     data: {
       dailyPlanId: dailyPlanId || null,
+      date,
       developerId,
       projectId,
       taskTitle,
@@ -42,6 +49,7 @@ export async function addEodUpdate(formData: FormData) {
 
 export async function updateEodUpdate(formData: FormData) {
   const id = formData.get('id') as string
+  const date = parseUpdateDate(formData.get('date'))
   const dailyPlanId = formData.get('dailyPlanId') as string
   const developerId = formData.get('developerId') as string
   const projectId = formData.get('projectId') as string
@@ -61,6 +69,7 @@ export async function updateEodUpdate(formData: FormData) {
     where: { id },
     data: {
       dailyPlanId: dailyPlanId || null,
+      date,
       developerId,
       projectId,
       taskTitle,

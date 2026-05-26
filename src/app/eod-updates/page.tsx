@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addEodUpdate } from './actions'
 import { EodUpdatesTable } from '@/components/EodUpdatesTable'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 
 export default async function EodUpdatesPage() {
   const updates = await prisma.dailyUpdate.findMany({
@@ -14,6 +15,7 @@ export default async function EodUpdatesPage() {
   const updateRows = updates.map((update) => ({
     id: update.id,
     date: update.date.toLocaleDateString(),
+    dateValue: update.date.toISOString().slice(0, 10),
     developerId: update.developerId,
     developerName: update.developer.name,
     projectId: update.projectId,
@@ -46,6 +48,10 @@ export default async function EodUpdatesPage() {
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium mb-4">Submit Update</h2>
             <form action={addEodUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <input required type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Link to Daily Plan (Optional)</label>
                 <select name="dailyPlanId" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
@@ -82,6 +88,10 @@ export default async function EodUpdatesPage() {
                     <option value="QA">QA</option>
                     <option value="Deployment">Deployment</option>
                     <option value="Research">Research</option>
+                    <option value="Documentation">Documentation</option>
+                    <option value="Client Support">Client Support</option>
+                    <option value="Code Review">Code Review</option>
+                    <option value="Planning">Planning</option>
                   </select>
                 </div>
                 <div>
@@ -108,10 +118,18 @@ export default async function EodUpdatesPage() {
                 <textarea name="workCompleted" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Work Pending / Blocker</label>
+                <label className="block text-sm font-medium text-gray-700">Work Pending</label>
                 <textarea name="workPending" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
-              <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Submit Update</button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Blocker, if any</label>
+                <textarea name="blocker" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Short Summary</label>
+                <textarea name="summary" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
+              <PendingSubmitButton label="Submit Update" pendingLabel="Submitting..." className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70" />
             </form>
           </div>
         </div>

@@ -8,6 +8,13 @@ export async function addDeveloper(formData: FormData) {
   const role = formData.get('role') as string
   const weeklyHours = parseInt(formData.get('weeklyHours') as string)
   const status = formData.get('status') as string
+  const primarySkills = formData.get('primarySkills') as string
+  const secondarySkills = formData.get('secondarySkills') as string
+  const weakAreas = formData.get('weakAreas') as string
+  const preferredWork = formData.get('preferredWork') as string
+  const currentProjects = formData.get('currentProjects') as string
+  const pastProjects = formData.get('pastProjects') as string
+  const notes = formData.get('notes') as string
 
   if (!name || !role) return
 
@@ -16,7 +23,14 @@ export async function addDeveloper(formData: FormData) {
       name,
       role,
       weeklyHours: isNaN(weeklyHours) ? 40 : weeklyHours,
-      status: status || 'Active'
+      status: status || 'Active',
+      primarySkills,
+      secondarySkills,
+      weakAreas,
+      preferredWork,
+      currentProjects,
+      pastProjects,
+      notes
     }
   })
 
@@ -29,6 +43,13 @@ export async function updateDeveloper(formData: FormData) {
   const role = formData.get('role') as string
   const weeklyHours = parseInt(formData.get('weeklyHours') as string)
   const status = formData.get('status') as string
+  const primarySkills = formData.get('primarySkills') as string
+  const secondarySkills = formData.get('secondarySkills') as string
+  const weakAreas = formData.get('weakAreas') as string
+  const preferredWork = formData.get('preferredWork') as string
+  const currentProjects = formData.get('currentProjects') as string
+  const pastProjects = formData.get('pastProjects') as string
+  const notes = formData.get('notes') as string
 
   if (!id || !name || !role) return
 
@@ -38,7 +59,14 @@ export async function updateDeveloper(formData: FormData) {
       name,
       role,
       weeklyHours: isNaN(weeklyHours) ? 40 : weeklyHours,
-      status: status || 'Active'
+      status: status || 'Active',
+      primarySkills,
+      secondarySkills,
+      weakAreas,
+      preferredWork,
+      currentProjects,
+      pastProjects,
+      notes
     }
   })
 

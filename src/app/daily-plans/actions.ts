@@ -3,7 +3,13 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
+function parsePlanDate(value: FormDataEntryValue | null) {
+  if (!value || typeof value !== 'string') return new Date()
+  return value ? new Date(value) : new Date()
+}
+
 export async function addDailyPlan(formData: FormData) {
+  const date = parsePlanDate(formData.get('date'))
   const developerId = formData.get('developerId') as string
   const projectId = formData.get('projectId') as string
   const taskTitle = formData.get('taskTitle') as string
@@ -19,6 +25,7 @@ export async function addDailyPlan(formData: FormData) {
   await prisma.dailyPlan.create({
     data: {
       developerId,
+      date,
       projectId,
       taskTitle,
       workType,
@@ -35,6 +42,7 @@ export async function addDailyPlan(formData: FormData) {
 
 export async function updateDailyPlan(formData: FormData) {
   const id = formData.get('id') as string
+  const date = parsePlanDate(formData.get('date'))
   const developerId = formData.get('developerId') as string
   const projectId = formData.get('projectId') as string
   const taskTitle = formData.get('taskTitle') as string
@@ -51,6 +59,7 @@ export async function updateDailyPlan(formData: FormData) {
     where: { id },
     data: {
       developerId,
+      date,
       projectId,
       taskTitle,
       workType,

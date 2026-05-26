@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addDailyPlan } from './actions'
 import { DailyPlansTable } from '@/components/DailyPlansTable'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 
 export default async function DailyPlansPage() {
   const plans = await prisma.dailyPlan.findMany({
@@ -13,6 +14,7 @@ export default async function DailyPlansPage() {
   const planRows = plans.map((plan) => ({
     id: plan.id,
     date: plan.date.toLocaleDateString(),
+    dateValue: plan.date.toISOString().slice(0, 10),
     developerId: plan.developerId,
     developerName: plan.developer.name,
     projectId: plan.projectId,
@@ -37,6 +39,10 @@ export default async function DailyPlansPage() {
           <div className="rounded-xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium mb-4">Submit Plan</h2>
             <form action={addDailyPlan} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <input required type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Developer</label>
                 <select required name="developerId" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
@@ -89,7 +95,11 @@ export default async function DailyPlansPage() {
                 <label className="block text-sm font-medium text-gray-700">Dependency / Blocker</label>
                 <input type="text" name="dependency" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
-              <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Submit Plan</button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Short Note</label>
+                <textarea name="notes" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
+              <PendingSubmitButton label="Submit Plan" pendingLabel="Submitting..." className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70" />
             </form>
           </div>
         </div>
