@@ -17,6 +17,7 @@ type PlanOption = { id: string; label: string }
 type EodUpdateRow = {
   id: string
   date: string
+  dateValue: string
   developerId: string
   developerName: string
   projectId: string
@@ -115,6 +116,10 @@ export function EodUpdatesTable({
                 <td colSpan={5} className="px-6 py-4">
                   <form action={updateEodUpdate} className="grid gap-3 lg:grid-cols-2">
                     <input type="hidden" name="id" value={update.id} />
+                    <label className="text-xs font-medium text-gray-600">
+                      Date
+                      <input required type="date" name="date" defaultValue={update.dateValue} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm" />
+                    </label>
                     <label className="text-xs font-medium text-gray-600 lg:col-span-2">
                       Daily Plan
                       <select name="dailyPlanId" defaultValue={update.dailyPlanId ?? ''} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">

@@ -6,6 +6,11 @@ export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: 'desc' }
   })
+  const projectRows = projects.map((project) => ({
+    ...project,
+    startDate: project.startDate?.toISOString().slice(0, 10) ?? null,
+    endDate: project.endDate?.toISOString().slice(0, 10) ?? null,
+  }))
 
   return (
     <div className="space-y-6">
@@ -51,8 +56,42 @@ export default async function ProjectsPage() {
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Tech Stack Used</label>
+                <textarea name="techStack" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" placeholder="Next.js, PostgreSQL, Sanity CMS" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Developers Involved</label>
+                <textarea name="developersInvolved" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" placeholder="Names or team members" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Role of Each Developer</label>
+                <textarea name="developerRoles" rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" placeholder="Gaurav - frontend, Riya - backend" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Main Features Delivered</label>
+                <textarea name="mainFeatures" rows={3} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Important Challenges Handled</label>
+                <textarea name="challenges" rows={3} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Start Date</label>
+                  <input type="date" name="startDate" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">End Date</label>
+                  <input type="date" name="endDate" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+                </div>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Summary</label>
                 <textarea name="summary" rows={3} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" placeholder="Short description..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea name="notes" rows={3} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
               </div>
               <button type="submit" className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors">Add Project</button>
             </form>
@@ -60,7 +99,7 @@ export default async function ProjectsPage() {
         </div>
 
         <div className="md:col-span-2">
-          <ProjectsTable projects={projects} />
+          <ProjectsTable projects={projectRows} />
         </div>
       </div>
     </div>

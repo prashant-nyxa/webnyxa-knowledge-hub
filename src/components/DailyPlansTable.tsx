@@ -16,6 +16,7 @@ type Option = { id: string; name: string }
 type DailyPlanRow = {
   id: string
   date: string
+  dateValue: string
   developerId: string
   developerName: string
   projectId: string
@@ -103,6 +104,10 @@ export function DailyPlansTable({
                 <td colSpan={5} className="px-6 py-4">
                   <form action={updateDailyPlan} className="grid gap-3 lg:grid-cols-2">
                     <input type="hidden" name="id" value={plan.id} />
+                    <label className="text-xs font-medium text-gray-600">
+                      Date
+                      <input required type="date" name="date" defaultValue={plan.dateValue} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm" />
+                    </label>
                     <label className="text-xs font-medium text-gray-600">
                       Developer
                       <select required name="developerId" defaultValue={plan.developerId} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">
