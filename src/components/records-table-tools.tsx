@@ -1,6 +1,9 @@
 'use client'
 
-import { Download, Filter, Search, X } from 'lucide-react'
+import { Download, Search, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 export type FilterConfig = {
   key: string
@@ -19,6 +22,7 @@ type RecordsTableToolbarProps = {
   onExport: () => void
   resultCount: number
   totalCount: number
+  searchPlaceholder?: string
 }
 
 export function RecordsTableToolbar({
@@ -32,79 +36,72 @@ export function RecordsTableToolbar({
   onExport,
   resultCount,
   totalCount,
+  searchPlaceholder = 'Search...',
 }: RecordsTableToolbarProps) {
-  const activeFilterCount = Object.values(selectedFilters).reduce((count, values) => count + values.length, 0)
+  const activeChips = Object.entries(selectedFilters).flatMap(([key, values]) =>
+    values.map((value) => {
+      const filter = filters.find((f) => f.key === key)
+      return { key, value, label: filter?.label ?? key }
+    })
+  )
+
+  const allFilterOptions = filters.flatMap((filter) =>
+    filter.options.map((option) => ({ key: filter.key, value: option, label: filter.label }))
+  )
 
   return (
-    <div className="border-b bg-white px-4 py-4">
+    <div className="border-b bg-card px-4 py-4 sm:px-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-          <p className="text-xs text-gray-500">{resultCount} of {totalCount} shown</p>
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="text-xs text-muted-foreground">
+            {resultCount} of {totalCount} records
+          </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="relative block min-w-0 sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-            <input
+          <div className="relative min-w-0 sm:w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search records"
-              className="h-10 w-full rounded-md border border-gray-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-gray-900"
+              placeholder={searchPlaceholder}
+              className="h-9 pl-9"
             />
-          </label>
-          <button
-            type="button"
-            onClick={onExport}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-          >
-            <Download className="h-4 w-4" aria-hidden="true" />
-            CSV
-          </button>
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              Clear
-            </button>
-          )}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onExport}>
+            <Download className="size-4" />
+            Export
+          </Button>
         </div>
       </div>
 
-      {filters.length > 0 && (
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {filters.map((filter) => (
-            <fieldset key={filter.key} className="rounded-md border border-gray-200 p-3">
-              <legend className="flex items-center gap-2 px-1 text-xs font-semibold uppercase text-gray-500">
-                <Filter className="h-3.5 w-3.5" aria-hidden="true" />
-                {filter.label}
-              </legend>
-              <div className="mt-2 flex max-h-28 flex-wrap gap-2 overflow-auto">
-                {filter.options.map((option) => {
-                  const checked = selectedFilters[filter.key]?.includes(option) ?? false
-
-                  return (
-                    <label
-                      key={option}
-                      className={`inline-flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
-                        checked ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => onFilterToggle(filter.key, option)}
-                        className="sr-only"
-                      />
-                      {option}
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
-          ))}
+      {(allFilterOptions.length > 0 || activeChips.length > 0) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {allFilterOptions.map(({ key, value, label }) => {
+            const active = selectedFilters[key]?.includes(value) ?? false
+            return (
+              <button
+                key={`${key}-${value}`}
+                type="button"
+                onClick={() => onFilterToggle(key, value)}
+                className={cn(
+                  'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-150',
+                  active
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:bg-muted hover:text-foreground'
+                )}
+                title={label}
+              >
+                {value}
+              </button>
+            )
+          })}
+          {activeChips.length > 0 && (
+            <Button type="button" variant="ghost" size="xs" onClick={onClearFilters} className="text-muted-foreground">
+              <X className="size-3.5" />
+              Clear filters
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -157,5 +154,7 @@ export function exportCsv(filename: string, rows: Record<string, string | number
 }
 
 export function uniqueOptions(values: Array<string | null | undefined>) {
-  return Array.from(new Set(values.filter((value): value is string => Boolean(value)))).sort((a, b) => a.localeCompare(b))
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value)))).sort((a, b) =>
+    a.localeCompare(b)
+  )
 }

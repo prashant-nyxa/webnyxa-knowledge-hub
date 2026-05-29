@@ -2,63 +2,131 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Briefcase, BookOpen, Calendar, Clock, BarChart } from 'lucide-react'
+import {
+  Home,
+  Users,
+  Briefcase,
+  BookOpen,
+  Calendar,
+  Clock,
+  BarChart,
+  LogOut,
+  Sparkles,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { logoutUser } from '@/app/(protected)/session-actions'
 
-const navItems = [
+const adminMainNav = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/developers', label: 'Developers', icon: Users },
   { href: '/projects', label: 'Projects', icon: Briefcase },
   { href: '/skills', label: 'Skills', icon: BookOpen },
 ]
 
-const workflowItems = [
+const workflowNav = [
   { href: '/daily-plans', label: 'Daily Plans', icon: Calendar },
   { href: '/eod-updates', label: 'EOD Updates', icon: Clock },
 ]
 
-const reportItems = [
+const reportNav = [
   { href: '/reports/plan-vs-actual', label: 'Plan vs Actual', icon: BarChart },
 ]
+
+type SidebarUser = {
+  name: string
+  email: string
+  role: 'admin' | 'developer'
+}
 
 function isActivePath(pathname: string, href: string) {
   if (href === '/') return pathname === '/'
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function SidebarLink({ href, label, icon: Icon }: { href: string; label: string; icon: typeof Home }) {
+function NavSection({ title, items }: { title: string; items: Array<{ href: string; label: string; icon: typeof Home }> }) {
   const pathname = usePathname()
-  const active = isActivePath(pathname, href)
 
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-        active ? 'bg-black text-white hover:bg-black' : 'text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Link>
+    <div className="space-y-1">
+      <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+        {title}
+      </p>
+      {items.map((item) => {
+        const active = isActivePath(pathname, item.href)
+        const Icon = item.icon
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+              active
+                ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm shadow-sidebar-primary/25'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <Icon
+              className={cn(
+                'size-[18px] shrink-0 transition-colors',
+                active ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground'
+              )}
+            />
+            {item.label}
+          </Link>
+        )
+      })}
+    </div>
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: SidebarUser }) {
+  const mainNav = user.role === 'admin' ? adminMainNav : []
+  const reports = user.role === 'admin' ? reportNav : []
+
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-gray-50 fixed">
-      <div className="p-6">
-        <h2 className="text-lg font-bold tracking-tight text-gray-900">Knowledge System</h2>
+    <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar text-sidebar-foreground">
+      <div className="flex items-center gap-3 px-5 py-6">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <Sparkles className="size-4" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold leading-tight text-sidebar-accent-foreground">
+            Knowledge Hub
+          </h2>
+          <p className="text-[11px] text-sidebar-foreground/50">Internal System</p>
+        </div>
       </div>
-      <nav className="flex-1 space-y-1 px-4 py-4">
-        {navItems.map((item) => <SidebarLink key={item.href} {...item} />)}
-        <div className="pt-4 pb-2">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Workflows</p>
-        </div>
-        {workflowItems.map((item) => <SidebarLink key={item.href} {...item} />)}
-        <div className="pt-4 pb-2">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Reports</p>
-        </div>
-        {reportItems.map((item) => <SidebarLink key={item.href} {...item} />)}
+
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+        {mainNav.length > 0 && <NavSection title="Main" items={mainNav} />}
+        <NavSection title="Workflows" items={workflowNav} />
+        {reports.length > 0 && <NavSection title="Reports" items={reports} />}
       </nav>
-    </div>
+
+      <div className="mt-auto border-t border-sidebar-border p-4">
+        <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/60 px-3 py-2.5">
+          <div className="flex size-8 items-center justify-center rounded-full bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
+            {user.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-sidebar-accent-foreground">{user.name}</p>
+            <p className="truncate text-[11px] text-sidebar-foreground/50">
+              {user.role === 'admin' ? 'Admin workspace' : 'Developer workspace'}
+            </p>
+          </div>
+          <form action={logoutUser}>
+            <button
+              type="submit"
+              className="rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label="Log out"
+              title={`Signed in as ${user.email}`}
+            >
+              <LogOut className="size-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </aside>
   )
 }

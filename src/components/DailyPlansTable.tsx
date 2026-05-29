@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Edit3, Save, Trash2, X } from 'lucide-react'
-import { deleteDailyPlan, updateDailyPlan } from '@/app/daily-plans/actions'
+import { deleteDailyPlan, updateDailyPlan } from '@/app/(protected)/daily-plans/actions'
 import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 import {
   createInitialFilters,
@@ -37,10 +37,12 @@ export function DailyPlansTable({
   plans,
   developers,
   projects,
+  canManageAll,
 }: {
   plans: DailyPlanRow[]
   developers: Option[]
   projects: Option[]
+  canManageAll: boolean
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -111,9 +113,16 @@ export function DailyPlansTable({
                     </label>
                     <label className="text-xs font-medium text-gray-600">
                       Developer
-                      <select required name="developerId" defaultValue={plan.developerId} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">
-                        {developers.map((developer) => <option key={developer.id} value={developer.id}>{developer.name}</option>)}
-                      </select>
+                      {canManageAll ? (
+                        <select required name="developerId" defaultValue={plan.developerId} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">
+                          {developers.map((developer) => <option key={developer.id} value={developer.id}>{developer.name}</option>)}
+                        </select>
+                      ) : (
+                        <>
+                          <input type="hidden" name="developerId" value={plan.developerId} />
+                          <input value={plan.developerName} disabled className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-sm" />
+                        </>
+                      )}
                     </label>
                     <label className="text-xs font-medium text-gray-600">
                       Project
