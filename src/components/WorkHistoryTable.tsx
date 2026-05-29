@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { EmptyState } from '@/components/empty-state'
+import { StatusBadge } from '@/components/status-badges'
 import {
   createInitialFilters,
   exportCsv,
@@ -56,7 +58,7 @@ export function WorkHistoryTable({
   }
 
   return (
-    <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm ring-1 ring-border/50">
       <RecordsTableToolbar
         title="Work History"
         search={search}
@@ -78,36 +80,36 @@ export function WorkHistoryTable({
         resultCount={filteredRows.length}
         totalCount={rows.length}
       />
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{mode === 'developer' ? 'Project' : 'Developer'}</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effort</th>
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/40">
+            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">{mode === 'developer' ? 'Project' : 'Developer'}</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effort</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y divide-border">
           {filteredRows.map((row) => (
-            <tr key={row.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.date}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{mode === 'developer' ? row.projectName : row.developerName}</td>
-              <td className="px-6 py-4 text-sm text-gray-900">
+            <tr key={row.id} className="transition-colors hover:bg-muted/30">
+              <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground">{row.date}</td>
+              <td className="px-5 py-3.5 whitespace-nowrap font-medium">{mode === 'developer' ? row.projectName : row.developerName}</td>
+              <td className="px-5 py-3.5">
                 <div className="font-medium">{row.taskTitle}</div>
-                <div className="text-xs text-gray-500">{row.workType} · {row.technologies.join(', ')}</div>
+                <div className="text-xs text-muted-foreground">{row.workType} · {row.technologies.join(', ')}</div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.status}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.actualEffort}h</td>
+              <td className="px-5 py-3.5"><StatusBadge status={row.status} /></td>
+              <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground">{row.actualEffort}h</td>
             </tr>
           ))}
-          {filteredRows.length === 0 && (
-            <tr>
-              <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No work history matches the current filters.</td>
-            </tr>
-          )}
         </tbody>
       </table>
+      {filteredRows.length === 0 && (
+        <EmptyState title="No work history" description="No records match the current filters." />
+      )}
+      </div>
     </div>
   )
 }

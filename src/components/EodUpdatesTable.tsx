@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Edit3, Save, Trash2, X } from 'lucide-react'
-import { deleteEodUpdate, updateEodUpdate } from '@/app/eod-updates/actions'
+import { deleteEodUpdate, updateEodUpdate } from '@/app/(protected)/eod-updates/actions'
 import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 import {
   createInitialFilters,
@@ -44,11 +44,13 @@ export function EodUpdatesTable({
   developers,
   projects,
   plans,
+  canManageAll,
 }: {
   updates: EodUpdateRow[]
   developers: Option[]
   projects: Option[]
   plans: PlanOption[]
+  canManageAll: boolean
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -130,9 +132,16 @@ export function EodUpdatesTable({
                     </label>
                     <label className="text-xs font-medium text-gray-600">
                       Developer
-                      <select required name="developerId" defaultValue={update.developerId} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">
-                        {developers.map((developer) => <option key={developer.id} value={developer.id}>{developer.name}</option>)}
-                      </select>
+                      {canManageAll ? (
+                        <select required name="developerId" defaultValue={update.developerId} className="mt-1 h-10 w-full rounded-md border border-gray-300 px-3 text-sm">
+                          {developers.map((developer) => <option key={developer.id} value={developer.id}>{developer.name}</option>)}
+                        </select>
+                      ) : (
+                        <>
+                          <input type="hidden" name="developerId" value={update.developerId} />
+                          <input value={update.developerName} disabled className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-sm" />
+                        </>
+                      )}
                     </label>
                     <label className="text-xs font-medium text-gray-600">
                       Project
