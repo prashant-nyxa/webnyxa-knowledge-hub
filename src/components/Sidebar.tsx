@@ -12,9 +12,11 @@ import {
   BarChart,
   LogOut,
   Sparkles,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/(protected)/session-actions'
+import { useFormStatus } from 'react-dom'
 
 const adminMainNav = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -116,17 +118,26 @@ export function Sidebar({ user }: { user: SidebarUser }) {
             </p>
           </div>
           <form action={logoutUser}>
-            <button
-              type="submit"
-              className="rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              aria-label="Log out"
-              title={`Signed in as ${user.email}`}
-            >
-              <LogOut className="size-4" />
-            </button>
+            <LogoutButton email={user.email} />
           </form>
         </div>
       </div>
     </aside>
+  )
+}
+
+function LogoutButton({ email }: { email: string }) {
+  const { pending } = useFormStatus()
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-label="Log out"
+      title={`Signed in as ${email}`}
+      className="rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
+    </button>
   )
 }
