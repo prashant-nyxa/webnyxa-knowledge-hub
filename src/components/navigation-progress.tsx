@@ -7,16 +7,16 @@ import { Loader2 } from 'lucide-react'
 function isInternalNavigationTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return null
 
-  const anchor = target.closest('a[href]')
-  if (!anchor) return null
+  const closestAnchor = target.closest('a[href]')
+  if (!(closestAnchor instanceof HTMLAnchorElement)) return null
 
-  const href = anchor.getAttribute('href')
+  const href = closestAnchor.getAttribute('href')
   if (!href || href.startsWith('#')) return null
-  if (anchor.getAttribute('target') === '_blank') return null
-  if (anchor.hasAttribute('download')) return null
+  if (closestAnchor.getAttribute('target') === '_blank') return null
+  if (closestAnchor.hasAttribute('download')) return null
 
   try {
-    const url = new URL(anchor.href, window.location.href)
+    const url = new URL(closestAnchor.href, window.location.href)
     if (url.origin !== window.location.origin) return null
     if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return null
     return url
