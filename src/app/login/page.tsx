@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowRight, KeyRound, ShieldCheck, Sparkles } from 'lucide-react'
+import { KeyRound, ShieldCheck, Sparkles } from 'lucide-react'
 import { getSession } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PendingSubmitButton } from '@/components/PendingSubmitButton'
 import { loginAction } from './actions'
 
 type LoginPageProps = {
@@ -122,10 +122,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 </div>
               )}
 
-              <Button type="submit" nativeButton className="h-11 w-full justify-center">
-                Sign in
-                <ArrowRight className="size-4" />
-              </Button>
+              <PendingSubmitButton
+                label="Sign in"
+                pendingLabel="Signing in..."
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              />
             </form>
 
             <div className="mt-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
