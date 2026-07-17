@@ -1,12 +1,15 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { FormField, FormSection } from '@/components/form-field'
+import { MultiSelect } from '@/components/multi-select'
+import { StyledSelect } from '@/components/styled-select'
 import { addDeveloper, updateDeveloper } from '@/app/(protected)/developers/actions'
+import { DEVELOPER_ROLES, DEVELOPER_STATUSES } from '@/lib/constants'
 import type { ActionResult } from '@/lib/action-result'
 
 export type DeveloperFormData = {
@@ -41,21 +44,71 @@ const emptyDeveloper: DeveloperFormData = {
   notes: '',
 }
 
+type Option = { id: string; name: string }
+
+function splitList(value: string | null | undefined) {
+  return (value ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+}
+
 type DeveloperFormProps = {
   developer?: DeveloperFormData
+  skills: Option[]
+  projects: Option[]
   onSuccess: () => void
   onCancel: () => void
 }
 
-export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormProps) {
+export function DeveloperForm({ developer, skills, projects, onSuccess, onCancel }: DeveloperFormProps) {
   const isEdit = Boolean(developer?.id)
   const [pending, startTransition] = useTransition()
+  const defaults = developer ?? emptyDeveloper
+
+  const [primarySkills, setPrimarySkills] = useState(splitList(defaults.primarySkills))
+  const [secondarySkills, setSecondarySkills] = useState(splitList(defaults.secondarySkills))
+  const [currentProjects, setCurrentProjects] = useState(splitList(defaults.currentProjects))
+  const [pastProjects, setPastProjects] = useState(splitList(defaults.pastProjects))
+
+  const skillNames = skills.map((s) => s.name)
+  const projectNames = projects.map((p) => p.name)
+
+  const roleOptions = useMemo(() => {
+    const roles = [...DEVELOPER_ROLES]
+    if (defaults.role && !roles.includes(defaults.role as (typeof DEVELOPER_ROLES)[number])) {
+      roles.unshift(defaults.role as (typeof DEVELOPER_ROLES)[number])
+    }
+    return roles
+  }, [defaults.role])
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget
     const fd = new FormData(form)
+
+    const role = String(fd.get('role') ?? '').trim()
+    if (!role) {
+      toast.error('Please select a role')
+      return
+    }
+    if (primarySkills.length === 0) {
+      toast.error('Please select at least one primary skill')
+      return
+    }
+
+    const password = String(fd.get('password') ?? '')
+    if (!isEdit && password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    if (isEdit && password && password.length < 8) {
+      toast.error('New password must be at least 8 characters')
+      return
+    }
+
     if (developer?.id) fd.set('id', developer.id)
+    fd.set('primarySkills', primarySkills.join(', '))
+    fd.set('secondarySkills', secondarySkills.join(', '))
+    fd.set('currentProjects', currentProjects.join(', '))
+    fd.set('pastProjects', pastProjects.join(', '))
 
     startTransition(async () => {
       let result: ActionResult | void
@@ -73,17 +126,23 @@ export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormP
     })
   }
 
-  const defaults = developer ?? emptyDeveloper
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <FormSection title="Profile">
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Name" htmlFor="name" required>
             <Input id="name" name="name" required defaultValue={defaults.name} placeholder="John Doe" />
           </FormField>
           <FormField label="Role" htmlFor="role" required>
-            <Input id="role" name="role" required defaultValue={defaults.role} placeholder="Fullstack Engineer" />
+            <StyledSelect
+              id="role"
+              name="role"
+              required
+              defaultValue={defaults.role}
+              options={roleOptions}
+              placeholder="Select role"
+              emptyOptionLabel="Select role"
+            />
           </FormField>
           <FormField label="Weekly Hours" htmlFor="weeklyHours" required>
             <Input
@@ -97,15 +156,12 @@ export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormP
             />
           </FormField>
           <FormField label="Status" htmlFor="status">
-            <select
+            <StyledSelect
               id="status"
               name="status"
               defaultValue={defaults.status}
-              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+              options={[...DEVELOPER_STATUSES]}
+            />
           </FormField>
           <FormField label="Preferred Work Type" htmlFor="preferredWork" className="sm:col-span-2">
             <Input
@@ -140,7 +196,6 @@ export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormP
               name="password"
               type="password"
               required={!isEdit}
-              minLength={8}
               defaultValue=""
               placeholder={isEdit ? 'Optional' : 'Temporary password'}
             />
@@ -149,22 +204,20 @@ export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormP
       </FormSection>
 
       <FormSection title="Skills">
-        <FormField label="Primary Skills" htmlFor="primarySkills" hint="Comma-separated">
-          <Textarea
-            id="primarySkills"
-            name="primarySkills"
-            rows={2}
-            defaultValue={defaults.primarySkills ?? ''}
-            placeholder="React, Next.js, Node.js"
+        <FormField label="Primary Skills" htmlFor="primarySkills" required>
+          <MultiSelect
+            options={skillNames}
+            value={primarySkills}
+            onChange={setPrimarySkills}
+            placeholder="Select primary skills"
           />
         </FormField>
         <FormField label="Secondary Skills" htmlFor="secondarySkills">
-          <Textarea
-            id="secondarySkills"
-            name="secondarySkills"
-            rows={2}
-            defaultValue={defaults.secondarySkills ?? ''}
-            placeholder="QA, AWS, WordPress"
+          <MultiSelect
+            options={skillNames}
+            value={secondarySkills}
+            onChange={setSecondarySkills}
+            placeholder="Select secondary skills"
           />
         </FormField>
         <FormField label="Weak / Learning Areas" htmlFor="weakAreas">
@@ -174,10 +227,20 @@ export function DeveloperForm({ developer, onSuccess, onCancel }: DeveloperFormP
 
       <FormSection title="Projects">
         <FormField label="Current Active Projects" htmlFor="currentProjects">
-          <Textarea id="currentProjects" name="currentProjects" rows={2} defaultValue={defaults.currentProjects ?? ''} />
+          <MultiSelect
+            options={projectNames}
+            value={currentProjects}
+            onChange={setCurrentProjects}
+            placeholder="Select current projects"
+          />
         </FormField>
         <FormField label="Past Projects" htmlFor="pastProjects">
-          <Textarea id="pastProjects" name="pastProjects" rows={2} defaultValue={defaults.pastProjects ?? ''} />
+          <MultiSelect
+            options={projectNames}
+            value={pastProjects}
+            onChange={setPastProjects}
+            placeholder="Select past projects"
+          />
         </FormField>
         <FormField label="Notes" htmlFor="notes">
           <Textarea id="notes" name="notes" rows={3} defaultValue={defaults.notes ?? ''} />

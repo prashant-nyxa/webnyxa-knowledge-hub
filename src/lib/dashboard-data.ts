@@ -11,17 +11,18 @@ export async function getManagementDashboardData() {
   const today = startOfToday()
 
   const [
-    activeDevelopers,
-    allActiveDevs,
+    activeDevsFull,
     activeProjects,
     completedProjects,
     todayPlans,
     todayUpdates,
     allUpdates,
-    activeDevsFull,
   ] = await Promise.all([
-    prisma.developer.count({ where: { status: 'Active' } }),
-    prisma.developer.findMany({ where: { status: 'Active' } }),
+    prisma.developer.findMany({
+      where: { status: 'Active' },
+      select: { id: true, name: true, role: true, weeklyHours: true, primarySkills: true },
+      orderBy: { name: 'asc' },
+    }),
     prisma.project.count({ where: { status: 'Active' } }),
     prisma.project.count({ where: { status: 'Completed' } }),
     prisma.dailyPlan.findMany({
@@ -44,12 +45,10 @@ export async function getManagementDashboardData() {
         developer: { select: { name: true, primarySkills: true, secondarySkills: true } },
       },
     }),
-    prisma.developer.findMany({
-      where: { status: 'Active' },
-      select: { id: true, name: true, role: true, weeklyHours: true, primarySkills: true },
-      orderBy: { name: 'asc' },
-    }),
   ])
+
+  const activeDevelopers = activeDevsFull.length
+  const allActiveDevs = activeDevsFull
 
   const availableDevelopers = allActiveDevs.filter((d) => d.weeklyHours >= 40).length
   const busyDevelopers = allActiveDevs.filter((d) => d.weeklyHours < 40).length

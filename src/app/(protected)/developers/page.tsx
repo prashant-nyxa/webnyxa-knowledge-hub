@@ -1,26 +1,18 @@
 export const dynamic = 'force-dynamic'
 
-import { prisma } from '@/lib/prisma'
 import { DevelopersTable } from '@/components/DevelopersTable'
-import { listDeveloperUsers, requireAdmin } from '@/lib/auth'
+import { getDeveloperFilters } from '@/lib/filter-options'
+import { requireAdmin } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export default async function DevelopersPage() {
   await requireAdmin()
 
-  const [developers, users] = await Promise.all([
-    prisma.developer.findMany({
-      orderBy: { name: 'asc' },
-    }),
-    listDeveloperUsers(),
+  const [filters, skills, projects] = await Promise.all([
+    getDeveloperFilters(),
+    prisma.skill.findMany({ where: { status: 'Active' }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.project.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ])
-  const emailByDeveloperId = new Map(users.map((user) => [user.developerId, user.email]))
 
-  return (
-    <DevelopersTable
-      developers={developers.map((developer) => ({
-        ...developer,
-        email: emailByDeveloperId.get(developer.id) ?? '',
-      }))}
-    />
-  )
+  return <DevelopersTable filters={filters} skills={skills} projects={projects} />
 }

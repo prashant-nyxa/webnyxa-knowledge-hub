@@ -50,13 +50,6 @@ export function WorkHistoryTable({
     return haystack.includes(search.toLowerCase()) && matchesFilters(row, selectedFilters)
   })
 
-  function toggleFilter(key: string, value: string) {
-    setSelectedFilters((current) => {
-      const values = current[key] ?? []
-      return { ...current, [key]: values.includes(value) ? values.filter((item) => item !== value) : [...values, value] }
-    })
-  }
-
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm ring-1 ring-border/50">
       <RecordsTableToolbar
@@ -65,7 +58,9 @@ export function WorkHistoryTable({
         onSearchChange={setSearch}
         filters={filters}
         selectedFilters={selectedFilters}
-        onFilterToggle={toggleFilter}
+        onFilterSelect={(key, value) =>
+          setSelectedFilters((current) => ({ ...current, [key]: value ? [value] : [] }))
+        }
         onClearFilters={() => setSelectedFilters(createInitialFilters(filters))}
         onExport={() => exportCsv(`${mode}-work-history.csv`, filteredRows.map((row) => ({
           Date: row.date,

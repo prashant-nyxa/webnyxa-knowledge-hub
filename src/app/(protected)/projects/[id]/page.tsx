@@ -8,26 +8,19 @@ import { PageHeader } from '@/components/page-header'
 import { CategoryBadge, StatusBadge } from '@/components/status-badges'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { serializeWorkHistoryUpdate } from '@/lib/work-history'
 import { requireAdmin } from '@/lib/auth'
+import { getWorkHistoryFilters } from '@/lib/filter-options'
 
 export default async function ProjectHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin()
 
   const { id } = await params
-  const project = await prisma.project.findUnique({
-    where: { id },
-    include: {
-      dailyUpdates: {
-        include: { project: true, developer: true },
-        orderBy: { date: 'desc' },
-      },
-    },
-  })
+  const [project, filters] = await Promise.all([
+    prisma.project.findUnique({ where: { id } }),
+    getWorkHistoryFilters(),
+  ])
 
   if (!project) return notFound()
-
-  const records = project.dailyUpdates.map(serializeWorkHistoryUpdate)
 
   return (
     <div className="space-y-6">
@@ -54,9 +47,11 @@ export default async function ProjectHistoryPage({ params }: { params: Promise<{
       </div>
 
       <ProjectWorkHistoryView
-        records={records}
+        projectId={project.id}
+        filters={filters}
         projectSummary={project.summary}
         projectNotes={project.notes}
+        developersInvolved={project.developersInvolved}
       />
     </div>
   )

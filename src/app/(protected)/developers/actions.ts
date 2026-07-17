@@ -9,6 +9,7 @@ import {
   createPasswordResetToken,
   deleteLinkedUserByDeveloperId,
   findUserByDeveloperId,
+  findUserByEmail,
   hashPassword,
   requireAdmin,
   updateLinkedUserByDeveloperId,
@@ -17,6 +18,11 @@ import { sendDeveloperAccountEmail } from '@/lib/mailer'
 
 function randomFallbackPassword() {
   return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+}
+
+function isEmailInUseError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  return message.includes('unique constraint') || message.includes('duplicate key')
 }
 
 export async function addDeveloper(formData: FormData): Promise<ActionResult> {
@@ -78,7 +84,7 @@ export async function addDeveloper(formData: FormData): Promise<ActionResult> {
       return actionSuccess('Developer added, but account email could not be sent')
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Unique constraint')) {
+    if (isEmailInUseError(error)) {
       return actionError('That email is already in use')
     }
     return actionError('Failed to add developer')
@@ -110,6 +116,12 @@ export async function updateDeveloper(formData: FormData): Promise<ActionResult>
     const existing = await prisma.developer.findUnique({ where: { id } })
 
     if (!existing) return actionError('Developer not found')
+
+    const emailOwner = await findUserByEmail(email)
+    if (emailOwner && emailOwner.developerId !== id) {
+      return actionError('That email is already in use by another account')
+    }
+
     const existingUser = await findUserByDeveloperId(id)
 
     await prisma.developer.update({
@@ -148,15 +160,15 @@ export async function updateDeveloper(formData: FormData): Promise<ActionResult>
     if (password || !existingUser) {
       const user = await findUserByDeveloperId(id)
       if (user) {
-        const resetToken = await createPasswordResetToken(user.id)
         try {
+          const resetToken = await createPasswordResetToken(user.id)
           await sendDeveloperAccountEmail({
             to: email,
             name,
             resetUrl: buildResetPasswordUrl(resetToken),
           })
         } catch {
-          return actionSuccess('Developer updated, but account email could not be sent')
+          // Account updated; email delivery is optional
         }
       }
     }
@@ -165,9 +177,10 @@ export async function updateDeveloper(formData: FormData): Promise<ActionResult>
     revalidatePath('/')
     return actionSuccess('Developer updated successfully')
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Unique constraint')) {
-      return actionError('That email is already in use')
+    if (isEmailInUseError(error)) {
+      return actionError('That email is already in use by another account')
     }
+    console.error('updateDeveloper failed:', error)
     return actionError('Failed to update developer')
   }
 }

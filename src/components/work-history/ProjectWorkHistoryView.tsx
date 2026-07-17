@@ -1,10 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   aggregateProjectHistory,
-  filterWorkHistory,
-  uniqueSorted,
   type WorkHistoryRecord,
 } from '@/lib/work-history'
 import { AvatarInitials } from '@/components/avatar-initials'
@@ -17,43 +15,63 @@ import {
   type WorkHistoryFilterState,
 } from '@/components/work-history/work-history-filters'
 import { WorkHistoryTaskTable } from '@/components/work-history/work-history-task-table'
+import { RecordsPagination } from '@/components/records-pagination'
+import { useDebounce } from '@/hooks/use-debounce'
+import { usePaginatedQuery } from '@/hooks/use-paginated-query'
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { fetchAllRecords } from '@/lib/fetch-all-records'
+import type { FilterConfig } from '@/components/records-table-tools'
 
 export function ProjectWorkHistoryView({
-  records,
+  projectId,
+  filters,
   projectSummary,
   projectNotes,
+  developersInvolved,
 }: {
-  records: WorkHistoryRecord[]
+  projectId: string
+  filters: FilterConfig[]
   projectSummary: string | null
   projectNotes: string | null
+  developersInvolved: string | null
 }) {
-  const [filters, setFilters] = useState<WorkHistoryFilterState>(emptyWorkHistoryFilters())
+  const [filterState, setFilterState] = useState<WorkHistoryFilterState>(emptyWorkHistoryFilters())
+  const debouncedSearch = useDebounce(filterState.search)
+  const [allRecords, setAllRecords] = useState<WorkHistoryRecord[]>([])
 
-  const developerOptions = useMemo(
-    () => uniqueSorted(records.map((r) => r.developerName)),
-    [records]
+  const queryParams = useMemo(
+    () => ({
+      projectId,
+      search: debouncedSearch,
+      pageSize: DEFAULT_PAGE_SIZE,
+      dateFrom: filterState.dateFrom,
+      dateTo: filterState.dateTo,
+      developer: filterState.developers.join(','),
+      technology: filterState.technologies.join(','),
+      status: filterState.statuses.join(','),
+      workType: filterState.workTypes.join(','),
+    }),
+    [projectId, filterState, debouncedSearch]
   )
-  const technologyOptions = useMemo(
-    () => uniqueSorted(records.flatMap((r) => r.technologyList)),
-    [records]
-  )
-  const statusOptions = useMemo(() => uniqueSorted(records.map((r) => r.status)), [records])
-  const workTypeOptions = useMemo(() => uniqueSorted(records.map((r) => r.workType)), [records])
 
-  const filtered = useMemo(
-    () =>
-      filterWorkHistory(
-        records,
-        { ...filters, projects: [] },
-        'project'
-      ),
-    [records, filters]
-  )
+  const { data, total, page, totalPages, loading, setPage } =
+    usePaginatedQuery<WorkHistoryRecord>('/api/work-history', queryParams)
+
+  useEffect(() => {
+    fetchAllRecords<WorkHistoryRecord>('/api/work-history', queryParams)
+      .then(setAllRecords)
+      .catch(() => setAllRecords([]))
+  }, [queryParams])
 
   const stats = useMemo(
-    () => aggregateProjectHistory(filtered, projectSummary),
-    [filtered, projectSummary]
+    () => aggregateProjectHistory(allRecords, projectSummary),
+    [allRecords, projectSummary]
   )
+
+  const involvedDevelopers = (developersInvolved ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
 
   const summaryText =
     projectSummary?.trim() ||
@@ -61,28 +79,40 @@ export function ProjectWorkHistoryView({
       ? `Team has logged ${stats.totalEffort.toFixed(1)} hours across ${stats.tasksCompleted} completed tasks with ${stats.developers.length} developer(s) involved.`
       : 'No EOD updates recorded for this project yet.')
 
+  const pendingAndBlocked = [...stats.pendingTasks, ...stats.blockedTasks]
+
   return (
     <div className="space-y-6">
       <WorkHistoryFilters
-        filters={filters}
-        onChange={setFilters}
-        projectOptions={[]}
-        developerOptions={developerOptions}
-        technologyOptions={technologyOptions}
-        statusOptions={statusOptions}
-        workTypeOptions={workTypeOptions}
+        filters={filterState}
+        onChange={setFilterState}
+        filterOptions={filters}
         showProjectFilter={false}
         showDeveloperFilter
-        resultCount={filtered.length}
-        totalCount={records.length}
+        resultCount={data.length}
+        totalCount={total}
+        loading={loading}
       />
 
       <Card className="border-border/60 shadow-sm">
         <CardHeader className="border-b pb-3">
           <CardTitle className="text-base">Project summary</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
+        <CardContent className="space-y-3 p-4 text-sm text-muted-foreground">
           <p className="text-foreground">{summaryText}</p>
+          {involvedDevelopers.length > 0 && (
+            <div>
+              <p className="font-medium text-foreground">Developers involved</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {involvedDevelopers.map((name) => (
+                  <span key={name} className="inline-flex items-center gap-2 rounded-full border bg-muted px-3 py-1 text-xs font-medium text-foreground">
+                    <AvatarInitials name={name} size="sm" />
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {projectNotes?.trim() && (
             <p>
               <span className="font-medium text-foreground">Notes: </span>
@@ -97,15 +127,6 @@ export function ProjectWorkHistoryView({
         <StatCard label="Tasks completed" value={stats.tasksCompleted} />
         <StatCard label="Total effort" value={`${stats.totalEffort.toFixed(1)}h`} />
         <StatCard label="Blocked tasks" value={stats.blockedTasks.length} />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard label="Pending tasks" value={stats.pendingTasks.length} hint="In progress" />
-        <StatCard
-          label="Technologies used"
-          value={stats.technologies.length}
-          hint={stats.technologies.slice(0, 3).join(', ') || '—'}
-        />
       </div>
 
       <Card className="border-border/60 shadow-sm">
@@ -136,41 +157,24 @@ export function ProjectWorkHistoryView({
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="border-b pb-3">
-          <CardTitle className="text-base">Technologies used on project</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2 p-4">
-          {stats.technologies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No technologies recorded.</p>
-          ) : (
-            stats.technologies.map((tech) => <CategoryBadge key={tech} category={tech} />)
-          )}
-        </CardContent>
-      </Card>
-
       <WorkHistoryTaskTable
         title="All work history"
-        records={filtered}
+        records={data}
         secondaryColumn="developer"
-        exportFilename="project-work-history.csv"
+        exportFilename="project-work-history.pdf"
+        exportTitle="Project Work History"
+        loading={loading}
       />
 
-      {stats.pendingTasks.length > 0 && (
-        <WorkHistoryTaskTable
-          title="Pending tasks"
-          records={stats.pendingTasks}
-          secondaryColumn="developer"
-          exportFilename="project-pending-tasks.csv"
-        />
-      )}
+      <RecordsPagination page={page} totalPages={totalPages} total={total} pageSize={DEFAULT_PAGE_SIZE} onPageChange={setPage} loading={loading} />
 
-      {stats.blockedTasks.length > 0 && (
+      {pendingAndBlocked.length > 0 && (
         <WorkHistoryTaskTable
-          title="Blocked tasks"
-          records={stats.blockedTasks}
+          title="Current / pending / blocked tasks"
+          records={pendingAndBlocked}
           secondaryColumn="developer"
-          exportFilename="project-blocked-tasks.csv"
+          exportFilename="project-pending-blocked-tasks.pdf"
+          exportTitle="Pending and Blocked Tasks"
         />
       )}
 
@@ -179,7 +183,18 @@ export function ProjectWorkHistoryView({
           title="Completed tasks"
           records={stats.completedTasks}
           secondaryColumn="developer"
-          exportFilename="project-completed-tasks.csv"
+          exportFilename="project-completed-tasks.pdf"
+          exportTitle="Completed Tasks"
+        />
+      )}
+
+      {stats.blockedTasks.length > 0 && (
+        <WorkHistoryTaskTable
+          title="Blocked / carried forward tasks"
+          records={stats.blockedTasks}
+          secondaryColumn="developer"
+          exportFilename="project-blocked-tasks.pdf"
+          exportTitle="Blocked Tasks"
         />
       )}
     </div>

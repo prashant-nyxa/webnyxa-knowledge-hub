@@ -1,12 +1,15 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { FormField, FormSection } from '@/components/form-field'
+import { DeveloperRoleSelector, MultiSelect, parseDeveloperRoles } from '@/components/multi-select'
+import { StyledSelect } from '@/components/styled-select'
 import { addProject, updateProject } from '@/app/(protected)/projects/actions'
+import { PROJECT_STATUSES, PROJECT_TYPES } from '@/lib/constants'
 import type { ActionResult } from '@/lib/action-result'
 
 export type ProjectFormData = {
@@ -26,35 +29,56 @@ export type ProjectFormData = {
   notes: string | null
 }
 
-const projectTypes = [
-  'Website',
-  'Mobile App',
-  'Admin Panel',
-  'Backend',
-  'Shopify',
-  'WordPress',
-  'CMS',
-  'Maintenance',
-  'Other',
-]
+const emptyProject: ProjectFormData = {
+  name: '',
+  client: '',
+  type: '',
+  status: 'Active',
+  techStack: '',
+  developersInvolved: '',
+  developerRoles: '',
+  mainFeatures: '',
+  challenges: '',
+  startDate: '',
+  endDate: '',
+  summary: '',
+  notes: '',
+}
 
-const selectClass =
-  'flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
+type Option = { id: string; name: string }
+
+function splitList(value: string | null | undefined) {
+  return (value ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+}
 
 type ProjectFormProps = {
   project?: ProjectFormData
+  skills: Option[]
+  developers: Option[]
   onSuccess: () => void
   onCancel: () => void
 }
 
-export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) {
+export function ProjectForm({ project, skills, developers, onSuccess, onCancel }: ProjectFormProps) {
   const isEdit = Boolean(project?.id)
   const [pending, startTransition] = useTransition()
+  const defaults = project ?? emptyProject
+
+  const [techStack, setTechStack] = useState(splitList(defaults.techStack))
+  const [developerEntries, setDeveloperEntries] = useState(() =>
+    parseDeveloperRoles(defaults.developersInvolved, defaults.developerRoles, developers)
+  )
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const fd = new FormData(event.currentTarget)
     if (project?.id) fd.set('id', project.id)
+    fd.set('techStack', techStack.join(', '))
+    fd.set('developersInvolved', developerEntries.map((d) => d.developerName).join(', '))
+    fd.set(
+      'developerRoles',
+      JSON.stringify(developerEntries.map((d) => ({ name: d.developerName, role: d.role })))
+    )
 
     startTransition(async () => {
       const result: ActionResult | void = isEdit ? await updateProject(fd) : await addProject(fd)
@@ -65,22 +89,6 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
       toast.success(result?.message ?? (isEdit ? 'Project updated' : 'Project added'))
       onSuccess()
     })
-  }
-
-  const defaults = project ?? {
-    name: '',
-    client: '',
-    type: '',
-    status: 'Active',
-    techStack: '',
-    developersInvolved: '',
-    developerRoles: '',
-    mainFeatures: '',
-    challenges: '',
-    startDate: '',
-    endDate: '',
-    summary: '',
-    notes: '',
   }
 
   return (
@@ -94,22 +102,23 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
             <Input id="client" name="client" defaultValue={defaults.client ?? ''} placeholder="Acme Corp" />
           </FormField>
           <FormField label="Type" htmlFor="type" required>
-            <select id="type" name="type" required defaultValue={defaults.type} className={selectClass}>
-              <option value="">Select type</option>
-              {projectTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            <StyledSelect
+              id="type"
+              name="type"
+              required
+              defaultValue={defaults.type}
+              options={[...PROJECT_TYPES]}
+              placeholder="Select type"
+              emptyOptionLabel="Select type"
+            />
           </FormField>
           <FormField label="Status" htmlFor="status">
-            <select id="status" name="status" defaultValue={defaults.status} className={selectClass}>
-              <option value="Active">Active</option>
-              <option value="Completed">Completed</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+            <StyledSelect
+              id="status"
+              name="status"
+              defaultValue={defaults.status}
+              options={[...PROJECT_STATUSES]}
+            />
           </FormField>
           <FormField label="Start Date" htmlFor="startDate">
             <Input id="startDate" name="startDate" type="date" defaultValue={defaults.startDate ?? ''} />
@@ -121,20 +130,20 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
       </FormSection>
 
       <FormSection title="Team & Tech">
-        <FormField label="Tech Stack" htmlFor="techStack" hint="Comma-separated">
-          <Textarea
-            id="techStack"
-            name="techStack"
-            rows={2}
-            defaultValue={defaults.techStack ?? ''}
-            placeholder="Next.js, PostgreSQL"
+        <FormField label="Tech Stack" htmlFor="techStack">
+          <MultiSelect
+            options={skills.map((s) => s.name)}
+            value={techStack}
+            onChange={setTechStack}
+            placeholder="Select technologies"
           />
         </FormField>
-        <FormField label="Developers Involved" htmlFor="developersInvolved">
-          <Textarea id="developersInvolved" name="developersInvolved" rows={2} defaultValue={defaults.developersInvolved ?? ''} />
-        </FormField>
-        <FormField label="Developer Roles" htmlFor="developerRoles">
-          <Textarea id="developerRoles" name="developerRoles" rows={2} defaultValue={defaults.developerRoles ?? ''} />
+        <FormField label="Developers Involved & Roles" htmlFor="developersInvolved">
+          <DeveloperRoleSelector
+            developers={developers}
+            value={developerEntries}
+            onChange={setDeveloperEntries}
+          />
         </FormField>
       </FormSection>
 
@@ -154,9 +163,7 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
       </FormSection>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          Cancel
-        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving...' : isEdit ? 'Save changes' : 'Add project'}
         </Button>

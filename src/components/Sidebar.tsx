@@ -13,6 +13,7 @@ import {
   LogOut,
   Sparkles,
   Loader2,
+  History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/(protected)/session-actions'
@@ -31,6 +32,7 @@ const workflowNav = [
 ]
 
 const reportNav = [
+  { href: '/work-history', label: 'Developer Work History', icon: History },
   { href: '/reports/plan-vs-actual', label: 'Plan vs Actual', icon: BarChart },
 ]
 

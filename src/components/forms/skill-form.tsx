@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/form-field'
+import { StyledSelect } from '@/components/styled-select'
 import { addSkill, updateSkill } from '@/app/(protected)/skills/actions'
 import type { ActionResult } from '@/lib/action-result'
 
@@ -16,9 +17,6 @@ export type SkillFormData = {
 }
 
 const skillCategories = ['Frontend', 'Backend', 'Mobile', 'CMS', 'Cloud', 'Database', 'QA', 'Design', 'Other']
-
-const selectClass =
-  'flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
 type SkillFormProps = {
   skill?: SkillFormData
@@ -54,21 +52,24 @@ export function SkillForm({ skill, onSuccess, onCancel }: SkillFormProps) {
         <Input id="name" name="name" required defaultValue={defaults.name} placeholder="React Native" />
       </FormField>
       <FormField label="Category" htmlFor="category" required>
-        <select id="category" name="category" required defaultValue={defaults.category} className={selectClass}>
-          <option value="">Select category</option>
-          {skillCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+        <StyledSelect
+          id="category"
+          name="category"
+          required
+          defaultValue={defaults.category}
+          options={skillCategories}
+          placeholder="Select category"
+          emptyOptionLabel="Select category"
+        />
       </FormField>
       {isEdit && (
         <FormField label="Status" htmlFor="status">
-          <select id="status" name="status" defaultValue={defaults.status} className={selectClass}>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
+          <StyledSelect
+            id="status"
+            name="status"
+            defaultValue={defaults.status}
+            options={['Active', 'Inactive']}
+          />
         </FormField>
       )}
       <div className="flex justify-end gap-2 pt-2">
