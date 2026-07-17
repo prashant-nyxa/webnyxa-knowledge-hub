@@ -1,21 +1,18 @@
 export const dynamic = 'force-dynamic'
 
-import { prisma } from '@/lib/prisma'
 import { ProjectsTable } from '@/components/ProjectsTable'
+import { getProjectFilters } from '@/lib/filter-options'
 import { requireAdmin } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export default async function ProjectsPage() {
   await requireAdmin()
 
-  const projects = await prisma.project.findMany({
-    orderBy: { updatedAt: 'desc' },
-  })
-  const projectRows = projects.map((project) => ({
-    ...project,
-    startDate: project.startDate?.toISOString().slice(0, 10) ?? null,
-    endDate: project.endDate?.toISOString().slice(0, 10) ?? null,
-    updatedAt: project.updatedAt.toISOString(),
-  }))
+  const [filters, skills, developers] = await Promise.all([
+    getProjectFilters(),
+    prisma.skill.findMany({ where: { status: 'Active' }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.developer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+  ])
 
-  return <ProjectsTable projects={projectRows} />
+  return <ProjectsTable filters={filters} skills={skills} developers={developers} />
 }

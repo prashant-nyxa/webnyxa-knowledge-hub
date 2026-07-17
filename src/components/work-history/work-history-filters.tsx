@@ -3,7 +3,8 @@
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { StyledSelect } from '@/components/styled-select'
+import type { FilterConfig } from '@/components/records-table-tools'
 
 export type WorkHistoryFilterState = {
   dateFrom: string
@@ -19,77 +20,65 @@ export type WorkHistoryFilterState = {
 type WorkHistoryFiltersProps = {
   filters: WorkHistoryFilterState
   onChange: (filters: WorkHistoryFilterState) => void
-  projectOptions: string[]
-  developerOptions: string[]
-  technologyOptions: string[]
-  statusOptions: string[]
-  workTypeOptions: string[]
+  filterOptions: FilterConfig[]
   showProjectFilter: boolean
   showDeveloperFilter: boolean
   resultCount: number
   totalCount: number
+  loading?: boolean
 }
 
-function ChipGroup({
+function FilterSelect({
   label,
   options,
   selected,
-  onToggle,
+  onChange,
 }: {
   label: string
   options: string[]
   selected: string[]
-  onToggle: (value: string) => void
+  onChange: (value: string) => void
 }) {
   if (options.length === 0) return null
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((option) => {
-          const active = selected.includes(option)
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onToggle(option)}
-              className={cn(
-                'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                active
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:bg-muted'
-              )}
-            >
-              {option}
-            </button>
-          )
-        })}
-      </div>
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <StyledSelect
+        value={selected[0] ?? ''}
+        onChange={onChange}
+        options={options}
+        placeholder={`All ${label.toLowerCase()}`}
+        emptyOptionLabel={`All ${label.toLowerCase()}`}
+      />
     </div>
   )
+}
+
+function getOptions(filterOptions: FilterConfig[], key: string) {
+  return filterOptions.find((f) => f.key === key)?.options ?? []
 }
 
 export function WorkHistoryFilters({
   filters,
   onChange,
-  projectOptions,
-  developerOptions,
-  technologyOptions,
-  statusOptions,
-  workTypeOptions,
+  filterOptions,
   showProjectFilter,
   showDeveloperFilter,
   resultCount,
   totalCount,
+  loading,
 }: WorkHistoryFiltersProps) {
-  function toggle<K extends keyof WorkHistoryFilterState>(key: K, value: string) {
+  const projectOptions = getOptions(filterOptions, 'project')
+  const developerOptions = getOptions(filterOptions, 'developer')
+  const technologyOptions = getOptions(filterOptions, 'technology')
+  const statusOptions = getOptions(filterOptions, 'status')
+  const workTypeOptions = getOptions(filterOptions, 'workType')
+
+  function selectFilter<K extends keyof WorkHistoryFilterState>(key: K, value: string) {
     const current = filters[key]
     if (!Array.isArray(current)) return
-    const next = current.includes(value)
-      ? current.filter((item) => item !== value)
-      : [...current, value]
-    onChange({ ...filters, [key]: next })
+    onChange({ ...filters, [key]: value ? [value] : [] })
   }
 
   function clearAll() {
@@ -121,7 +110,7 @@ export function WorkHistoryFilters({
         <div>
           <h3 className="text-sm font-semibold text-foreground">Filters</h3>
           <p className="text-xs text-muted-foreground">
-            {resultCount} of {totalCount} records
+            {loading ? 'Loading...' : `${resultCount} of ${totalCount} records`}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -145,64 +134,25 @@ export function WorkHistoryFilters({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Date from
-          </label>
-          <Input
-            type="date"
-            value={filters.dateFrom}
-            onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
-            className="h-9"
-          />
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date from</label>
+          <Input type="date" value={filters.dateFrom} onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })} className="h-9" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Date to
-          </label>
-          <Input
-            type="date"
-            value={filters.dateTo}
-            onChange={(e) => onChange({ ...filters, dateTo: e.target.value })}
-            className="h-9"
-          />
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date to</label>
+          <Input type="date" value={filters.dateTo} onChange={(e) => onChange({ ...filters, dateTo: e.target.value })} className="h-9" />
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {showProjectFilter && (
-          <ChipGroup
-            label="Project"
-            options={projectOptions}
-            selected={filters.projects}
-            onToggle={(v) => toggle('projects', v)}
-          />
+          <FilterSelect label="Project" options={projectOptions} selected={filters.projects} onChange={(v) => selectFilter('projects', v)} />
         )}
         {showDeveloperFilter && (
-          <ChipGroup
-            label="Developer"
-            options={developerOptions}
-            selected={filters.developers}
-            onToggle={(v) => toggle('developers', v)}
-          />
+          <FilterSelect label="Developer" options={developerOptions} selected={filters.developers} onChange={(v) => selectFilter('developers', v)} />
         )}
-        <ChipGroup
-          label="Technology"
-          options={technologyOptions}
-          selected={filters.technologies}
-          onToggle={(v) => toggle('technologies', v)}
-        />
-        <ChipGroup
-          label="Status"
-          options={statusOptions}
-          selected={filters.statuses}
-          onToggle={(v) => toggle('statuses', v)}
-        />
-        <ChipGroup
-          label="Type of work"
-          options={workTypeOptions}
-          selected={filters.workTypes}
-          onToggle={(v) => toggle('workTypes', v)}
-        />
+        <FilterSelect label="Technology" options={technologyOptions} selected={filters.technologies} onChange={(v) => selectFilter('technologies', v)} />
+        <FilterSelect label="Status" options={statusOptions} selected={filters.statuses} onChange={(v) => selectFilter('statuses', v)} />
+        <FilterSelect label="Type of work" options={workTypeOptions} selected={filters.workTypes} onChange={(v) => selectFilter('workTypes', v)} />
       </div>
     </div>
   )

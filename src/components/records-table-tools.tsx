@@ -3,7 +3,7 @@
 import { Download, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { StyledSelect } from '@/components/styled-select'
 
 export type FilterConfig = {
   key: string
@@ -17,12 +17,20 @@ type RecordsTableToolbarProps = {
   onSearchChange: (value: string) => void
   filters: FilterConfig[]
   selectedFilters: Record<string, string[]>
-  onFilterToggle: (key: string, value: string) => void
+  onFilterToggle?: (key: string, value: string) => void
   onClearFilters: () => void
   onExport: () => void
   resultCount: number
   totalCount: number
   searchPlaceholder?: string
+  dateFilter?: string
+  onDateFilterChange?: (value: string) => void
+  dateFrom?: string
+  dateTo?: string
+  onDateFromChange?: (value: string) => void
+  onDateToChange?: (value: string) => void
+  onFilterSelect?: (key: string, value: string) => void
+  loading?: boolean
 }
 
 export function RecordsTableToolbar({
@@ -37,6 +45,14 @@ export function RecordsTableToolbar({
   resultCount,
   totalCount,
   searchPlaceholder = 'Search...',
+  dateFilter,
+  onDateFilterChange,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
+  onFilterSelect,
+  loading,
 }: RecordsTableToolbarProps) {
   const activeChips = Object.entries(selectedFilters).flatMap(([key, values]) =>
     values.map((value) => {
@@ -45,9 +61,21 @@ export function RecordsTableToolbar({
     })
   )
 
-  const allFilterOptions = filters.flatMap((filter) =>
-    filter.options.map((option) => ({ key: filter.key, value: option, label: filter.label }))
-  )
+  const hasDateFilter = Boolean(dateFilter || dateFrom || dateTo)
+  const hasActive = activeChips.length > 0 || hasDateFilter
+
+  const chipFilters = filters.filter((f) => f.options.length > 0)
+  const dateRangeFilter = filters.find((f) => f.key === 'date' && f.options.length === 0)
+
+  function handleFilterSelect(key: string, nextValue: string) {
+    if (onFilterSelect) {
+      onFilterSelect(key, nextValue)
+      return
+    }
+    const currentValues = selectedFilters[key] ?? []
+    currentValues.forEach((value) => onFilterToggle?.(key, value))
+    if (nextValue) onFilterToggle?.(key, nextValue)
+  }
 
   return (
     <div className="border-b bg-card px-4 py-4 sm:px-5">
@@ -55,7 +83,7 @@ export function RecordsTableToolbar({
         <div>
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
           <p className="text-xs text-muted-foreground">
-            {resultCount} of {totalCount} records
+            {loading ? 'Loading...' : `${resultCount} of ${totalCount} records`}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -68,35 +96,87 @@ export function RecordsTableToolbar({
               className="h-9 pl-9"
             />
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={onExport}>
+          <Button type="button" variant="outline" size="sm" onClick={onExport} disabled={loading}>
             <Download className="size-4" />
-            Export
+            Export PDF
           </Button>
         </div>
       </div>
 
-      {(allFilterOptions.length > 0 || activeChips.length > 0) && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {allFilterOptions.map(({ key, value, label }) => {
-            const active = selectedFilters[key]?.includes(value) ?? false
-            return (
-              <button
-                key={`${key}-${value}`}
-                type="button"
-                onClick={() => onFilterToggle(key, value)}
-                className={cn(
-                  'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-150',
-                  active
-                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                    : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:bg-muted hover:text-foreground'
-                )}
-                title={label}
-              >
-                {value}
-              </button>
-            )
-          })}
-          {activeChips.length > 0 && (
+      {(chipFilters.length > 0 || dateRangeFilter || hasActive) && (
+        <div className="mt-3 space-y-3">
+          {dateRangeFilter && onDateFilterChange && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {dateRangeFilter.label}
+              </p>
+              <Input
+                type="date"
+                value={dateFilter ?? ''}
+                onChange={(e) => onDateFilterChange(e.target.value)}
+                className="h-9 w-auto bg-white"
+              />
+            </div>
+          )}
+
+          {dateRangeFilter && onDateFromChange && onDateToChange && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {dateRangeFilter.label}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date"
+                  value={dateFrom ?? ''}
+                  onChange={(e) => onDateFromChange(e.target.value)}
+                  className="h-8 w-auto"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="date"
+                  value={dateTo ?? ''}
+                  onChange={(e) => onDateToChange(e.target.value)}
+                  className="h-8 w-auto"
+                />
+              </div>
+            </div>
+          )}
+
+          {onDateFilterChange && !dateRangeFilter && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</p>
+              <Input
+                type="date"
+                value={dateFilter ?? ''}
+                onChange={(e) => onDateFilterChange(e.target.value)}
+                className="h-8 w-auto"
+              />
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {chipFilters.map((filter) => (
+              <div key={filter.key} className="space-y-1.5">
+                <label
+                  htmlFor={`filter-${filter.key}`}
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {filter.label}
+                </label>
+                <StyledSelect
+                  id={`filter-${filter.key}`}
+                  value={selectedFilters[filter.key]?.[0] ?? ''}
+                  onChange={(value) => handleFilterSelect(filter.key, value)}
+                  options={filter.options}
+                  placeholder={`All ${filter.label.toLowerCase()}`}
+                  emptyOptionLabel={`All ${filter.label.toLowerCase()}`}
+                  disabled={loading}
+                />
+              </div>
+            ))}
+          </div>
+
+          {hasActive && (
             <Button type="button" variant="ghost" size="xs" onClick={onClearFilters} className="text-muted-foreground">
               <X className="size-3.5" />
               Clear filters
@@ -157,4 +237,15 @@ export function uniqueOptions(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value)))).sort((a, b) =>
     a.localeCompare(b)
   )
+}
+
+export function filtersToQueryParams(
+  selectedFilters: Record<string, string[]>,
+  extra?: Record<string, string>
+): Record<string, string> {
+  const params: Record<string, string> = { ...extra }
+  Object.entries(selectedFilters).forEach(([key, values]) => {
+    if (values.length > 0) params[key] = values.join(',')
+  })
+  return params
 }

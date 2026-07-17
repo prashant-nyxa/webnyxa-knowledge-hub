@@ -75,7 +75,7 @@ function parseRole(role: string): AppRole {
   return role === 'admin' ? 'admin' : 'developer'
 }
 
-async function findUserByEmail(email: string) {
+export async function findUserByEmail(email: string) {
   const rows = await prisma.$queryRaw<UserRow[]>`
     SELECT
       u.id,

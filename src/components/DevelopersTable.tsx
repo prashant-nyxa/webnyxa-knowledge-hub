@@ -2,21 +2,22 @@
 
 import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
-import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useDebounce } from '@/hooks/use-debounce'
+import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { deleteDeveloper } from '@/app/(protected)/developers/actions'
 import { AvatarInitials } from '@/components/avatar-initials'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
+import { DetailViewDialog } from '@/components/detail-view-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { FormDialog } from '@/components/form-dialog'
 import { DeveloperForm, type DeveloperFormData } from '@/components/forms/developer-form'
 import { PageHeader } from '@/components/page-header'
+import { RecordsPagination } from '@/components/records-pagination'
 import {
   createInitialFilters,
-  exportCsv,
-  matchesFilters,
+  filtersToQueryParams,
   RecordsTableToolbar,
-  uniqueOptions,
   type FilterConfig,
 } from '@/components/records-table-tools'
 import { RoleBadge, StatusBadge } from '@/components/status-badges'
@@ -28,6 +29,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { usePaginatedQuery } from '@/hooks/use-paginated-query'
+import { exportPdf } from '@/lib/pdf-export'
+import { fetchAllRecords } from '@/lib/fetch-all-records'
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+
 type DeveloperRow = {
   id: string
   name: string
@@ -35,6 +41,7 @@ type DeveloperRow = {
   email: string
   weeklyHours: number
   status: string
+  availability: string
   primarySkills: string | null
   secondarySkills: string | null
   weakAreas: string | null
@@ -44,61 +51,41 @@ type DeveloperRow = {
   notes: string | null
 }
 
-function splitList(value: string | null) {
-  return (value ?? '').split(',').map((item) => item.trim()).filter(Boolean)
-}
+type Option = { id: string; name: string }
 
 function toFormData(dev: DeveloperRow): DeveloperFormData {
   return { ...dev }
 }
 
-export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) {
+export function DevelopersTable({
+  filters,
+  skills,
+  projects,
+}: {
+  filters: FilterConfig[]
+  skills: Option[]
+  projects: Option[]
+}) {
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
+  const [selectedFilters, setSelectedFilters] = useState(() => createInitialFilters(filters))
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingDeveloper, setEditingDeveloper] = useState<DeveloperFormData | undefined>()
+  const [viewTarget, setViewTarget] = useState<DeveloperRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeveloperRow | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
 
-  const filters = useMemo<FilterConfig[]>(
-    () => [
-      { key: 'role', label: 'Role', options: uniqueOptions(developers.map((d) => d.role)) },
-      { key: 'status', label: 'Status', options: uniqueOptions(developers.map((d) => d.status)) },
-      { key: 'availability', label: 'Availability', options: ['Available', 'Busy'] },
-      {
-        key: 'primarySkillList',
-        label: 'Skill',
-        options: uniqueOptions(developers.flatMap((d) => splitList(d.primarySkills))),
-      },
-    ],
-    [developers]
-  )
-  const [selectedFilters, setSelectedFilters] = useState(() => createInitialFilters(filters))
-
-  const rows = useMemo(
-    () =>
-      developers.map((developer) => ({
-        ...developer,
-        availability:
-          developer.status === 'Active' && developer.weeklyHours >= 40 ? 'Available' : 'Busy',
-        primarySkillList: splitList(developer.primarySkills),
-      })),
-    [developers]
+  const queryParams = useMemo(
+    () => ({
+      search: debouncedSearch,
+      pageSize: DEFAULT_PAGE_SIZE,
+      ...filtersToQueryParams(selectedFilters),
+    }),
+    [debouncedSearch, selectedFilters]
   )
 
-  const filteredRows = rows.filter((developer) => {
-    const haystack =
-      `${developer.name} ${developer.role} ${developer.status} ${developer.primarySkills ?? ''} ${developer.secondarySkills ?? ''}`.toLowerCase()
-    return haystack.includes(search.toLowerCase()) && matchesFilters(developer, selectedFilters)
-  })
-
-  function toggleFilter(key: string, value: string) {
-    setSelectedFilters((current) => ({
-      ...current,
-      [key]: current[key]?.includes(value)
-        ? current[key].filter((item) => item !== value)
-        : [...(current[key] ?? []), value],
-    }))
-  }
+  const { data, total, page, totalPages, loading, setPage, refetch } =
+    usePaginatedQuery<DeveloperRow>('/api/developers', queryParams)
 
   function openAdd() {
     setEditingDeveloper(undefined)
@@ -120,7 +107,31 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
       }
       toast.success(result.message)
       setDeleteTarget(null)
+      refetch()
     })
+  }
+
+  async function handleExport() {
+    const rows = await fetchAllRecords<DeveloperRow>('/api/developers', queryParams)
+    exportPdf(
+      'developers.pdf',
+      'Developers',
+      rows.map((d) => ({
+        Name: d.name,
+        Email: d.email,
+        Role: d.role,
+        Status: d.status,
+        Availability: d.availability,
+        'Weekly Hours': d.weeklyHours,
+        'Primary Skills': d.primarySkills,
+        'Secondary Skills': d.secondarySkills,
+        'Weak Areas': d.weakAreas,
+        'Preferred Work': d.preferredWork,
+        'Current Projects': d.currentProjects,
+        'Past Projects': d.pastProjects,
+        Notes: d.notes,
+      }))
+    )
   }
 
   return (
@@ -143,24 +154,15 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
           onSearchChange={setSearch}
           filters={filters}
           selectedFilters={selectedFilters}
-          onFilterToggle={toggleFilter}
-          onClearFilters={() => setSelectedFilters(createInitialFilters(filters))}
-          onExport={() =>
-            exportCsv(
-              'developers.csv',
-              filteredRows.map((d) => ({
-                Name: d.name,
-                Role: d.role,
-                'Hours/Week': d.weeklyHours,
-                Status: d.status,
-                Availability: d.availability,
-                'Primary Skills': d.primarySkills,
-              }))
-            )
+          onFilterSelect={(key, value) =>
+            setSelectedFilters((current) => ({ ...current, [key]: value ? [value] : [] }))
           }
-          resultCount={filteredRows.length}
-          totalCount={developers.length}
+          onClearFilters={() => setSelectedFilters(createInitialFilters(filters))}
+          onExport={handleExport}
+          resultCount={data.length}
+          totalCount={total}
           searchPlaceholder="Search developers..."
+          loading={loading}
         />
 
         <div className="overflow-x-auto">
@@ -191,11 +193,8 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredRows.map((developer) => (
-                <tr
-                  key={developer.id}
-                  className="transition-colors hover:bg-muted/30"
-                >
+              {data.map((developer) => (
+                <tr key={developer.id} className="transition-colors hover:bg-muted/30">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <AvatarInitials name={developer.name} />
@@ -238,15 +237,16 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
                         }
                       />
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setViewTarget(developer)}>
+                          <Eye className="size-4" />
+                          View
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEdit(developer)}>
                           <Pencil className="size-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setDeleteTarget(developer)}
-                        >
+                        <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(developer)}>
                           <Trash2 className="size-4" />
                           Delete
                         </DropdownMenuItem>
@@ -257,10 +257,19 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
               ))}
             </tbody>
           </table>
-          {filteredRows.length === 0 && (
+          {!loading && data.length === 0 && (
             <EmptyState title="No developers found" description="Adjust filters or add a new developer." />
           )}
         </div>
+
+        <RecordsPagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={DEFAULT_PAGE_SIZE}
+          onPageChange={setPage}
+          loading={loading}
+        />
       </div>
 
       <FormDialog
@@ -276,10 +285,39 @@ export function DevelopersTable({ developers }: { developers: DeveloperRow[] }) 
         <DeveloperForm
           key={editingDeveloper?.id ?? 'new'}
           developer={editingDeveloper}
-          onSuccess={() => setSheetOpen(false)}
+          skills={skills}
+          projects={projects}
+          onSuccess={() => {
+            setSheetOpen(false)
+            refetch()
+          }}
           onCancel={() => setSheetOpen(false)}
         />
       </FormDialog>
+
+      <DetailViewDialog
+        open={Boolean(viewTarget)}
+        onOpenChange={(open) => !open && setViewTarget(null)}
+        title={viewTarget?.name ?? 'Developer Details'}
+        fields={
+          viewTarget
+            ? [
+                { label: 'Email', value: viewTarget.email },
+                { label: 'Role', value: viewTarget.role },
+                { label: 'Status', value: viewTarget.status },
+                { label: 'Availability', value: viewTarget.availability },
+                { label: 'Weekly Hours', value: viewTarget.weeklyHours },
+                { label: 'Primary Skills', value: viewTarget.primarySkills },
+                { label: 'Secondary Skills', value: viewTarget.secondarySkills },
+                { label: 'Weak / Learning Areas', value: viewTarget.weakAreas },
+                { label: 'Preferred Work', value: viewTarget.preferredWork },
+                { label: 'Current Active Projects', value: viewTarget.currentProjects },
+                { label: 'Past Projects', value: viewTarget.pastProjects },
+                { label: 'Notes', value: viewTarget.notes },
+              ]
+            : []
+        }
+      />
 
       <DeleteConfirmDialog
         open={Boolean(deleteTarget)}

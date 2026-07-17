@@ -19,9 +19,9 @@ type FormDialogProps = {
 }
 
 const sizeClasses = {
-  default: 'sm:max-w-md',
-  lg: 'sm:max-w-lg',
-  xl: 'sm:max-w-2xl',
+  default: 'sm:max-w-lg',
+  lg: 'sm:max-w-2xl',
+  xl: 'sm:max-w-3xl',
 }
 
 export function FormDialog({
