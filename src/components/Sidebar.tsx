@@ -32,7 +32,7 @@ const workflowNav = [
 ]
 
 const reportNav = [
-  { href: '/work-history', label: 'Developer Work History', icon: History },
+  { href: '/work-history', label: 'Work History', icon: History },
   { href: '/reports/plan-vs-actual', label: 'Plan vs Actual', icon: BarChart },
 ]
 

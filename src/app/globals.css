@@ -85,6 +85,8 @@
   --sidebar-accent-foreground: #f8fafc;
   --sidebar-border: #1e293b;
   --sidebar-ring: #4f46e5;
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
 }
 
 @layer base {

@@ -27,17 +27,29 @@ export async function GET(request: NextRequest) {
   const workTypeFilters = parseFilterValues(searchParams, 'workType')
 
   const where: Prisma.DailyUpdateWhereInput = {}
+  const planWhere: Prisma.DailyPlanWhereInput = {}
 
-  if (developerId) where.developerId = developerId
-  if (projectId) where.projectId = projectId
+  if (developerId) {
+    where.developerId = developerId
+    planWhere.developerId = developerId
+  }
+  if (projectId) {
+    where.projectId = projectId
+    planWhere.projectId = projectId
+  }
 
   if (dateFrom || dateTo) {
     where.date = {}
-    if (dateFrom) where.date.gte = new Date(dateFrom)
+    planWhere.date = {}
+    if (dateFrom) {
+      where.date.gte = new Date(dateFrom)
+      planWhere.date.gte = new Date(dateFrom)
+    }
     if (dateTo) {
       const end = new Date(dateTo)
       end.setDate(end.getDate() + 1)
       where.date.lt = end
+      planWhere.date.lt = end
     }
   }
 
@@ -58,10 +70,12 @@ export async function GET(request: NextRequest) {
 
   if (developerFilters.length > 0) {
     where.developer = { name: { in: developerFilters } }
+    planWhere.developer = { name: { in: developerFilters } }
   }
 
   if (projectFilters.length > 0) {
     where.project = { name: { in: projectFilters } }
+    planWhere.project = { name: { in: projectFilters } }
   }
 
   if (statusFilters.length > 0) {
@@ -70,14 +84,22 @@ export async function GET(request: NextRequest) {
 
   if (workTypeFilters.length > 0) {
     where.workType = { in: workTypeFilters }
+    planWhere.workType = { in: workTypeFilters }
   }
 
-  let updates = await prisma.dailyUpdate.findMany({
-    where,
-    include: { developer: true, project: true },
-    orderBy: { date: 'desc' },
-  })
+  const [updatesRaw, planAgg] = await Promise.all([
+    prisma.dailyUpdate.findMany({
+      where,
+      include: { developer: true, project: true },
+      orderBy: { date: 'desc' },
+    }),
+    prisma.dailyPlan.aggregate({
+      where: planWhere,
+      _sum: { expectedEffort: true },
+    }),
+  ])
 
+  let updates = updatesRaw
   if (technologyFilters.length > 0) {
     updates = updates.filter((u) => {
       const techs = splitCsv(u.technologies)
@@ -88,6 +110,15 @@ export async function GET(request: NextRequest) {
   const total = updates.length
   const paginated = updates.slice(skip, skip + take)
   const data = paginated.map(serializeWorkHistoryUpdate)
+  const actualEffort = updates.reduce((sum, u) => sum + u.actualEffort, 0)
+  const expectedEffort = planAgg._sum.expectedEffort ?? 0
 
-  return NextResponse.json(buildPaginatedResponse(data, total, page, pageSize))
+  return NextResponse.json({
+    ...buildPaginatedResponse(data, total, page, pageSize),
+    summary: {
+      expectedEffort,
+      actualEffort,
+      difference: actualEffort - expectedEffort,
+    },
+  })
 }

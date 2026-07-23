@@ -110,13 +110,15 @@ export async function getPlanVsActualFilters(): Promise<FilterConfig[]> {
 }
 
 export async function getWorkHistoryFilters(): Promise<FilterConfig[]> {
-  const [projectOptions, skillOptions] = await Promise.all([
+  const [projectOptions, developerOptions, skillOptions] = await Promise.all([
     getProjectNameOptions(),
+    getDeveloperNameOptions(),
     getSkillNameOptions(),
   ])
   return [
     { key: 'date', label: 'Date Range', options: [] },
     { key: 'project', label: 'Project', options: projectOptions },
+    { key: 'developer', label: 'Developer', options: developerOptions },
     { key: 'technology', label: 'Technology', options: skillOptions },
     { key: 'status', label: 'Status', options: [...EOD_STATUSES] },
     { key: 'workType', label: 'Type of Work', options: [...WORK_TYPES] },

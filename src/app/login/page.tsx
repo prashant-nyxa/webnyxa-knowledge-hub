@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Sparkles className="size-4" />
               </span>
-              WebNyxa Knowledge Hub
+              Webnyxa Knowledge Hub
             </div>
 
             <div className="space-y-4">
@@ -71,7 +71,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <Sparkles className="size-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-primary">WebNyxa Knowledge Hub</p>
+                <p className="text-sm font-medium text-primary">Webnyxa Knowledge Hub</p>
                 <CardTitle className="text-2xl">Admin & developer login</CardTitle>
               </div>
             </div>

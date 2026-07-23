@@ -200,7 +200,7 @@ export function DevelopersTable({
                       <AvatarInitials name={developer.name} />
                       <div className="min-w-0">
                         <Link
-                          href={`/developers/${developer.id}`}
+                          href={`/work-history/developers/${developer.id}`}
                           className="font-medium text-primary hover:underline"
                         >
                           {developer.name}

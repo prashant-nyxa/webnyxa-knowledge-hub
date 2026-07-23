@@ -1,13 +1,31 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { Download } from 'lucide-react'
 import { StatusBadge } from '@/components/status-badges'
 import { EmptyState } from '@/components/empty-state'
 import { DetailViewDialog } from '@/components/detail-view-dialog'
 import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
 import { exportPdf } from '@/lib/pdf-export'
 import type { WorkHistoryRecord } from '@/lib/work-history'
+
+function toPdfRows(records: WorkHistoryRecord[]) {
+  return records.map((r) => ({
+    Date: r.dateLabel,
+    Developer: r.developerName,
+    Project: r.projectName,
+    Task: r.taskTitle,
+    'Work Type': r.workType,
+    Technologies: r.technologies,
+    Status: r.status,
+    Effort: r.actualEffort,
+    'Work Completed': r.workCompleted,
+    'Work Pending': r.workPending,
+    Blocker: r.blocker,
+    Summary: r.summary,
+  }))
+}
 
 export function WorkHistoryTaskTable({
   title,
@@ -16,6 +34,7 @@ export function WorkHistoryTaskTable({
   exportFilename,
   exportTitle,
   loading,
+  onExportAll,
 }: {
   title: string
   records: WorkHistoryRecord[]
@@ -23,8 +42,20 @@ export function WorkHistoryTaskTable({
   exportFilename: string
   exportTitle?: string
   loading?: boolean
+  onExportAll?: () => Promise<WorkHistoryRecord[]>
 }) {
   const [viewTarget, setViewTarget] = useState<WorkHistoryRecord | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const rows = onExportAll ? await onExportAll() : records
+      exportPdf(exportFilename, exportTitle ?? title, toPdfRows(rows))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <>
@@ -35,51 +66,56 @@ export function WorkHistoryTaskTable({
             type="button"
             variant="outline"
             size="sm"
-            disabled={records.length === 0 || loading}
-            onClick={() =>
-              exportPdf(
-                exportFilename,
-                exportTitle ?? title,
-                records.map((r) => ({
-                  Date: r.dateLabel,
-                  Developer: r.developerName,
-                  Project: r.projectName,
-                  Task: r.taskTitle,
-                  'Work Type': r.workType,
-                  Technologies: r.technologies,
-                  Status: r.status,
-                  Effort: r.actualEffort,
-                  'Work Completed': r.workCompleted,
-                  'Work Pending': r.workPending,
-                  Blocker: r.blocker,
-                  Summary: r.summary,
-                }))
-              )
-            }
+            disabled={loading || exporting}
+            onClick={handleExport}
           >
             <Download className="size-4" />
-            Export PDF
+            {exporting ? 'Exporting...' : 'Export PDF'}
           </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Date
+                </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {secondaryColumn === 'project' ? 'Project' : 'Developer'}
                 </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Effort</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Task
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Effort
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {records.map((record) => (
                 <tr key={record.id} className="transition-colors hover:bg-muted/30">
-                  <td className="whitespace-nowrap px-5 py-3.5 text-muted-foreground">{record.dateLabel}</td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-muted-foreground">
+                    {record.dateLabel}
+                  </td>
                   <td className="whitespace-nowrap px-5 py-3.5 font-medium">
-                    {secondaryColumn === 'project' ? record.projectName : record.developerName}
+                    {secondaryColumn === 'project' ? (
+                      <Link
+                        href={`/work-history/projects/${record.projectId}`}
+                        className="text-primary hover:underline"
+                      >
+                        {record.projectName}
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/work-history/developers/${record.developerId}`}
+                        className="text-primary hover:underline"
+                      >
+                        {record.developerName}
+                      </Link>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <button
@@ -99,7 +135,9 @@ export function WorkHistoryTaskTable({
                   <td className="px-5 py-3.5">
                     <StatusBadge status={record.status} />
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-muted-foreground">{record.actualEffort}h</td>
+                  <td className="whitespace-nowrap px-5 py-3.5 text-muted-foreground">
+                    {record.actualEffort}h
+                  </td>
                 </tr>
               ))}
             </tbody>
