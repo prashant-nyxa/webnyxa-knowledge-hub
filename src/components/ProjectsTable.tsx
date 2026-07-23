@@ -168,7 +168,7 @@ export function ProjectsTable({
                 return (
                   <tr key={project.id} className="transition-colors hover:bg-muted/30">
                     <td className="px-5 py-3.5">
-                      <Link href={`/projects/${project.id}`} className="font-medium text-primary hover:underline">
+                      <Link href={`/work-history/projects/${project.id}`} className="font-medium text-primary hover:underline">
                         {project.name}
                       </Link>
                       {project.techStack && (

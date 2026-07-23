@@ -48,10 +48,10 @@ export async function sendDeveloperAccountEmail({
 }) {
   return sendEmail({
     to,
-    subject: 'Your WebNyxa account has been created',
+    subject: 'Your Webnyxa account has been created',
     html: `
       <p>Hi ${name},</p>
-      <p>Your developer account for WebNyxa Knowledge Hub has been created.</p>
+      <p>Your developer account for Webnyxa Knowledge Hub has been created.</p>
       <p>You can reset your password anytime using the link below:</p>
       <p><a href="${resetUrl}">${resetUrl}</a></p>
     `,
@@ -69,10 +69,10 @@ export async function sendPasswordResetEmail({
 }) {
   return sendEmail({
     to,
-    subject: 'Reset your WebNyxa password',
+    subject: 'Reset your Webnyxa password',
     html: `
       <p>Hi ${name},</p>
-      <p>We received a request to reset your WebNyxa Knowledge Hub password.</p>
+      <p>We received a request to reset your Webnyxa Knowledge Hub password.</p>
       <p>Use the link below to set a new password:</p>
       <p><a href="${resetUrl}">${resetUrl}</a></p>
       <p>If you did not request this, you can ignore this email.</p>

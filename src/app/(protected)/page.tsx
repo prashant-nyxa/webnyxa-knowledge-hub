@@ -38,7 +38,7 @@ export default async function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-primary">{dateLabel}</p>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="font-serif text-4xl font-normal tracking-tight text-foreground">
             {greeting}, team
           </h1>
           <p className="text-muted-foreground">
@@ -136,7 +136,7 @@ export default async function Dashboard() {
                   <AvatarInitials name={dev.name} size="sm" />
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/developers/${dev.id}`}
+                      href={`/work-history/developers/${dev.id}`}
                       className="text-sm font-medium text-primary hover:underline"
                     >
                       {dev.name}

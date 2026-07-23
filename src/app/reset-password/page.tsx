@@ -29,7 +29,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
                 {hasToken ? <KeyRound className="size-5" /> : <Sparkles className="size-5" />}
               </div>
               <div>
-                <p className="text-sm font-medium text-primary">WebNyxa Knowledge Hub</p>
+                <p className="text-sm font-medium text-primary">Webnyxa Knowledge Hub</p>
                 <CardTitle className="text-2xl">
                   {hasToken ? 'Set a new password' : 'Reset password'}
                 </CardTitle>
